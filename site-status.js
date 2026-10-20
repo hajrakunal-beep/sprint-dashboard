@@ -15,7 +15,6 @@ const assigneeDisplayNames = new Map([
   ["Diogo Ribeiro EXT <diogo.ribeiro@it.abb.com>", "Diogo"],
   ["Faiz Mohammed Siddiqui EXT <faiz-mohammed.siddiqui@it.abb.com>", "Faiz"],
   ["Joao Correia Rodrigues EXT <joao.correia-rodrigues@it.abb.com>", "Joao"],
-  ["Manoj Kumar EXT <manoj.kumar@it.abb.com>", "Manoj"],
   ["Mangesh Phatale EXT <mangesh.phatale@pt.abb.com>", "Mangesh"],
   ["Nivruth Gummadavelly EXT <nivruth.gummadavelly@pt.abb.com>", "Nivruth"],
   ["Ricardo Torres EXT <ricardo.torres@it.abb.com>", "Ricardo"],
