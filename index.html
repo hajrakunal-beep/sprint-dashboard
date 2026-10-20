@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sprint Health Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="vendor/xlsx.full.min.js" defer></script>
+    <script src="vendor/jspdf.umd.min.js" defer></script>
+    <script src="vendor/html2canvas.min.js" defer></script>
+    <script src="report-footer.js" defer></script>
+    <script src="report-cover.js" defer></script>
+    <script src="report-pdf.js" defer></script>
+    <script src="script.js" defer></script>
+    <script src="merge-data.js" defer></script>
+    <script src="preserve-workbook.js" defer></script>
+    <script src="update-backlog.js?v=7" defer></script>
+    <script src="settings.js" defer></script>
+    <script src="dashboard-sheet.js" defer></script>
+    <script src="site-filter.js" defer></script>
+    <script src="site-status.js" defer></script>
+    <script src="sprint-burndown.js" defer></script>
+    <script src="user-story-status.js" defer></script>
+    <script src="burndown-chart.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <button
+        id="menu-toggle"
+        class="menu-toggle"
+        aria-label="Toggle navigation"
+        aria-controls="sidebar"
+        aria-expanded="true"
+      >
+        ☰
+      </button>
+      <a class="brand" href="index.html">Sprint Monitor</a>
+      <img
+        class="topbar-logo"
+        src="assets/cognizant-logo.png"
+        alt="Cognizant"
+        width="160"
+        height="44"
+      />
+    </header>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <img
+          class="sidebar-logo"
+          src="assets/abb-logo.png"
+          alt="ABB"
+          width="48"
+          height="29"
+        />
+        <p class="nav-label">ABB ELSP</p>
+      </div>
+      <nav aria-label="Main navigation">
+        <a
+          id="dashboard-nav"
+          class="nav-link active"
+          href="index.html"
+          aria-current="page"
+          aria-controls="dashboard"
+          ><span aria-hidden="true">▦</span> Dashboard</a
+        >
+        <button
+          id="sprint-burndown-nav"
+          class="nav-link"
+          type="button"
+          aria-controls="sprint-burndown"
+        >
+          <span aria-hidden="true">▥</span> Sprint Commitment
+        </button>
+        <button
+          id="site-status-nav"
+          class="nav-link"
+          type="button"
+          aria-controls="site-status"
+        >
+          <span aria-hidden="true">▤</span> Site wise status
+        </button>
+        <button
+          id="user-story-status-nav"
+          class="nav-link"
+          type="button"
+          aria-controls="user-story-status"
+        >
+          <span aria-hidden="true">☷</span> User Story Status
+        </button>
+        <button
+          id="burndown-chart-nav"
+          class="nav-link"
+          type="button"
+          aria-controls="burndown-chart"
+        >
+          <span aria-hidden="true">↘</span> Burndown chart
+        </button>
+        <button
+          id="setting-nav"
+          class="nav-link"
+          type="button"
+          aria-controls="setting"
+        >
+          <span aria-hidden="true">⚙</span> Setting
+        </button>
+      </nav>
+    </aside>
+    <main id="dashboard">
+      <div class="dashboard-heading-row">
+        <h1>
+          Current sprint health status <span id="reporting-period"></span>
+        </h1>
+        <div class="dashboard-heading-actions">
+          <div class="report-action">
+            <button
+              id="create-report-button"
+              class="create-report-button"
+              type="button"
+              aria-describedby="report-status"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="19"
+                height="19"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path
+                  d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"
+                />
+                <path d="M14 3v6h6M8 16v-3m4 3v-5m4 5v-2" />
+              </svg>
+              <span>Create Report</span>
+            </button>
+            <p
+              id="report-status"
+              class="report-status"
+              role="status"
+              aria-live="polite"
+            ></p>
+          </div>
+          <div
+            class="dashboard-upload-strip"
+            role="group"
+            aria-label="Upload Excel workbook"
+          >
+            <label for="site-excel-file">Upload Excel file</label>
+            <div class="dashboard-upload-controls">
+              <input
+                id="site-excel-file"
+                type="file"
+                accept=".xlsx,.xls"
+                aria-describedby="upload-status"
+              />
+              <button
+                id="upload-excel-button"
+                class="upload-button"
+                type="button"
+                disabled
+              >
+                Upload
+              </button>
+            </div>
+            <p id="upload-status" role="status" aria-live="polite">
+              No file selected.
+            </p>
+          </div>
+        </div>
+      </div>
+      <section class="panel summary-panel" aria-label="Sprint summary">
+        <p class="as-of">AS OF <strong id="as-of"></strong></p>
+        <div class="summary-grid" id="summary"></div>
+      </section>
+      <section class="panel" aria-labelledby="overview-heading">
+        <h2 id="overview-heading">Sprint delivery overview</h2>
+        <div
+          class="table-scroll"
+          tabindex="0"
+          role="region"
+          aria-label="Sprint delivery details; scroll horizontally for all columns"
+        >
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Site</th>
+                <th scope="col">Sprint</th>
+                <th scope="col">Start</th>
+                <th scope="col">End</th>
+                <th scope="col">Planned Hrs</th>
+                <th scope="col">Actual Hrs</th>
+                <th scope="col">Planned %</th>
+                <th scope="col">Actual %</th>
+                <th scope="col">Variance</th>
+                <th scope="col">Delay</th>
+                <th scope="col">Health</th>
+                <th scope="col">Blocked</th>
+                <th scope="col">Comments</th>
+              </tr>
+            </thead>
+            <tbody id="sprint-rows"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="panel" aria-labelledby="chart-heading">
+        <div class="chart-header">
+          <h2 id="chart-heading">Planned vs actual progress by site</h2>
+          <div class="legend">
+            <span><i class="planned"></i>Planned %</span
+            ><span><i class="actual"></i>Actual %</span>
+          </div>
+        </div>
+        <div
+          class="chart-scroll"
+          tabindex="0"
+          role="region"
+          aria-label="Progress chart; scroll horizontally on small screens"
+        >
+          <svg
+            id="progress-chart"
+            role="img"
+            aria-labelledby="chart-title chart-description"
+          ></svg>
+        </div>
+      </section>
+    </main>
+    <main id="sprint-burndown" hidden>
+      <h1 tabindex="-1">Sprint Commitment</h1>
+      <p
+        id="sprint-committed-status"
+        class="site-status-empty"
+        role="status"
+        aria-live="polite"
+      >
+        Upload an Excel file from Dashboard to load sprint data for all six
+        sites.
+      </p>
+      <div id="burndown-cards" class="burndown-grid"></div>
+    </main>
+    <main id="site-status" hidden>
+      <div class="user-story-heading-row">
+        <h1 tabindex="-1">Site wise status</h1>
+        <details id="site-status-site-filter" class="user-story-site-filter">
+          <summary aria-controls="site-status-site-options">
+            <svg
+              class="user-story-filter-icon"
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M7 12h10M10 17h4" />
+            </svg>
+            <span class="user-story-filter-label">Sites</span>
+            <span id="site-status-site-selection" class="site-filter-selection"
+              >All</span
+            >
+          </summary>
+          <div
+            id="site-status-site-options"
+            class="user-story-site-options"
+            role="group"
+            aria-label="Sites to display"
+          ></div>
+        </details>
+      </div>
+      <p id="site-status-empty" class="site-status-empty">
+        Upload an Excel file on the Dashboard tab to view site wise status.
+      </p>
+      <div id="site-results-grid" class="site-results-grid" hidden></div>
+    </main>
+    <main id="user-story-status" hidden>
+      <div class="user-story-heading-row">
+        <h1 tabindex="-1">User Story Status</h1>
+        <details id="user-story-site-filter" class="user-story-site-filter">
+          <summary aria-controls="user-story-site-options">
+            <svg
+              class="user-story-filter-icon"
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M7 12h10M10 17h4" />
+            </svg>
+            <span class="user-story-filter-label">Sites</span>
+            <span id="user-story-site-selection" class="site-filter-selection"
+              >All</span
+            >
+          </summary>
+          <div
+            id="user-story-site-options"
+            class="user-story-site-options"
+            role="group"
+            aria-label="Sites to display"
+          ></div>
+        </details>
+      </div>
+      <p id="user-story-status-message" class="site-status-empty" role="status">
+        Upload an Excel workbook from Dashboard to view user stories and tasks
+        for all six sites.
+      </p>
+      <div id="user-story-cards" class="user-story-cards"></div>
+    </main>
+    <main id="burndown-chart" hidden>
+      <div class="user-story-heading-row">
+        <h1 tabindex="-1">Sprint burndown chart report</h1>
+        <details id="burndown-chart-site-filter" class="user-story-site-filter">
+          <summary aria-controls="burndown-chart-site-options">
+            <svg
+              class="user-story-filter-icon"
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M7 12h10M10 17h4" />
+            </svg>
+            <span class="user-story-filter-label">Sites</span>
+            <span
+              id="burndown-chart-site-selection"
+              class="site-filter-selection"
+              >All</span
+            >
+          </summary>
+          <div
+            id="burndown-chart-site-options"
+            class="user-story-site-options"
+            role="group"
+            aria-label="Sites to display"
+          ></div>
+        </details>
+      </div>
+      <p id="burndown-shared-status" role="status">
+        Upload an Excel file on the Dashboard tab to view burndown charts.
+      </p>
+      <div id="burndown-site-charts" class="burndown-site-charts"></div>
+    </main>
+    <main id="setting" hidden>
+      <h1 tabindex="-1">Setting</h1>
+      <div class="settings-center">
+        <section
+          class="panel settings-card"
+          aria-label="Upload files to merge data"
+        >
+          <div class="settings-upload-grid">
+            <div class="settings-upload-field">
+              <label for="master-excel-file">Upload the master file</label>
+              <p class="settings-file-hint" id="master-file-hint">
+                Select an .xlsx master workbook. Formatting is preserved and
+                changes are saved to this file.
+              </p>
+              <button
+                id="master-excel-file"
+                class="settings-file-picker"
+                type="button"
+                aria-describedby="master-file-hint master-file-status"
+              >
+                Choose master file
+              </button>
+              <p
+                id="master-file-status"
+                class="settings-file-status"
+                role="status"
+                aria-live="polite"
+              >
+                No file selected.
+              </p>
+            </div>
+            <div class="settings-upload-field">
+              <label for="ado-excel-file">Upload the ADO daily dump</label>
+              <p class="settings-file-hint" id="ado-file-hint">
+                Excel or CSV files (.xlsx, .xls or .csv)
+              </p>
+              <input
+                id="ado-excel-file"
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                aria-describedby="ado-file-hint ado-file-status"
+              />
+              <p
+                id="ado-file-status"
+                class="settings-file-status"
+                role="status"
+                aria-live="polite"
+              >
+                No file selected.
+              </p>
+            </div>
+          </div>
+          <div class="settings-merge-actions">
+            <button
+              id="merge-data-button"
+              class="upload-button settings-merge-button"
+              type="button"
+              disabled
+              aria-describedby="merge-data-status"
+            >
+              Merge Data
+            </button>
+            <p id="merge-data-status" role="status" aria-live="polite">
+              Select the master workbook and ADO dump to enable merging.
+            </p>
+          </div>
+        </section>
+        <section
+          class="panel settings-card settings-backlog-card"
+          aria-labelledby="consolidated-backlog-heading"
+        >
+          <h2 id="consolidated-backlog-heading">Update Consolidated Backlog</h2>
+          <div class="settings-upload-field">
+            <label for="backlog-excel-file">Upload the backlog file</label>
+            <p class="settings-file-hint" id="backlog-file-hint">
+              Select an .xlsx workbook containing Dashboard, Consolidated Backlog,
+              and Master Daily Dump. Changes are saved directly to this file.
+            </p>
+            <button
+              id="backlog-excel-file"
+              class="settings-file-picker"
+              type="button"
+              aria-describedby="backlog-file-hint"
+            >Choose backlog file</button>
+          </div>
+          <div class="settings-merge-actions">
+            <button
+              id="update-backlog-button"
+              class="upload-button settings-merge-button"
+              type="button"
+              onclick="if (!window.backlogUpdateReady) { document.getElementById('backlog-update-status').textContent = 'Backlog update could not load. Refresh this page with Ctrl+Shift+R and try again.'; document.getElementById('backlog-update-status').classList.add('settings-file-error'); }"
+              aria-describedby="backlog-update-status"
+            >
+              Update Backlog
+            </button>
+            <p id="backlog-update-status" class="settings-file-status" role="status" aria-live="polite">No file selected.</p>
+          </div>
+        </section>
+        <section
+          class="panel settings-card settings-range-card"
+          aria-labelledby="sprint-range-heading"
+        >
+          <h2 id="sprint-range-heading">Select Sprint Range</h2>
+          <p class="settings-range-hint">
+            Choose the reporting period for the dashboard.
+          </p>
+          <div
+            class="dashboard-date-filter"
+            role="group"
+            aria-label="Sprint range dates"
+          >
+            <div class="dashboard-date-field">
+              <label for="dashboard-date-from">From</label>
+              <input
+                id="dashboard-date-from"
+                type="date"
+                required
+                aria-describedby="dashboard-date-error"
+              />
+            </div>
+            <div class="dashboard-date-field">
+              <label for="dashboard-date-to">To</label>
+              <input
+                id="dashboard-date-to"
+                type="date"
+                required
+                aria-describedby="dashboard-date-error"
+              />
+            </div>
+            <p
+              id="dashboard-date-error"
+              role="status"
+              aria-live="polite"
+              hidden
+            ></p>
+          </div>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>
